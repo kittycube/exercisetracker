@@ -67,7 +67,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
 .s-divider{height:1px;background:var(--border);margin:4px 0;}
 
 /* ── Main scroll area ── */
-.main{flex:1;overflow-y:auto;overflow-x:hidden;padding:28px 20px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 20px);-webkit-overflow-scrolling:touch;}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;padding:calc(env(safe-area-inset-top, 20px) + 28px) 20px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 20px);-webkit-overflow-scrolling:touch;}
 @media(min-width:700px){.main{padding:32px 32px 32px;}}
 
 /* ── Bottom nav (mobile) ── */
