@@ -6,6 +6,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  /* Home screen app mode — push content below status bar */
+  @media all and (display-mode: standalone) {
+    .main { padding-top: calc(env(safe-area-inset-top) + 28px) !important; }
+    .sidebar { padding-top: calc(env(safe-area-inset-top) + 28px) !important; }
+  }
+</style>
 <title>✦ Exercise</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -208,8 +215,13 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;font-wei
 .tab.active{background:var(--bg2);color:var(--text);box-shadow:0 0 0 1px var(--border2);}
 
 /* ── Log entries ── */
-.log-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
-.log-item:last-child{border-bottom:none;}
+.log-item{display:flex;align-items:center;gap:12px;padding:11px 0;}
+.log-entry{border-bottom:1px solid var(--border);}
+.log-entry:last-child{border-bottom:none;}
+.log-entry.expandable{cursor:pointer;}
+.log-entry.expandable:hover .log-name{color:var(--pink);}
+.log-chevron{color:var(--text3);flex-shrink:0;transition:transform 0.2s;}
+.log-detail{padding:0 0 12px 21px;}
 .log-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 .log-date{font-size:11px;color:var(--text2);min-width:72px;}
 .log-name{font-size:13px;font-weight:500;flex:1;}
@@ -454,6 +466,8 @@ label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;font-wei
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+
 <div class="modal-overlay hidden" id="data-modal" onclick="handleModalClick(event)">
   <div class="modal" style="position:relative;">
     <button class="modal-close" onclick="closeDataModal()">✕</button>
@@ -522,27 +536,16 @@ const SCHEDULE = {
   0:{name:'Sunday',   type:'Flexibility — Splits & Shoulders',badge:'badge-flex', color:'var(--mint)',    short:'Splits',    loc:'home'},
 };
 
-const QUOTES = [
-  'Every rep is a love letter to your future self.',
-  'Soft doesn\'t mean slow. You\'re building something beautiful.',
-  'Progress is progress, no matter how small. ✦',
-  'Your body is learning. Trust the process.',
-  'Show up. That\'s the whole secret.',
-  'Consistency over perfection, always.',
-  'You are stronger than yesterday. ✧',
-  'Rest is part of the practice too.',
-];
-
 const DAILY = {
   hollow:[
-    {id:'hb1',name:'Hollow body hold',detail:'3 sets × 20–30 sec',cue:'Press lower back into floor, arms overhead, legs straight and lifted — this is your handstand shape'},
+    {id:'hb1',name:'Hollow body hold',detail:'3 sets × 20–30 sec',t:true},
   ],
   wrist_min:[
-    {id:'wm1',name:'Wrist shakes',detail:'15 seconds',cue:'Loose and relaxed, warm up circulation'},
-    {id:'wm2',name:'Forward pulses',detail:'5 reps — hold last 20 sec',cue:'Fingers forward, gentle downward pulses'},
-    {id:'wm3',name:'Side-to-side rocks',detail:'20 reps',cue:'Rock slowly, feel the lateral stretch'},
-    {id:'wm4',name:'Backward pulses',detail:'5 reps — hold last 20 sec',cue:'Fingers back toward you'},
-    {id:'wm5',name:'Rear pulses palm up',detail:'5 reps — hold last 20 sec',cue:'Palm facing up, fingers toward floor behind you'},
+    {id:'wm1',name:'Wrist shakes',detail:'15 seconds'},
+    {id:'wm2',name:'Forward pulses',detail:'5 reps — hold last 20 sec',cue:'Fingers forward, lean over wrists'},
+    {id:'wm3',name:'Side-to-side rocks',detail:'20 reps',cue:'Fingers outward'},
+    {id:'wm4',name:'Backward pulses',detail:'5 reps — hold last 20 sec',cue:'Fingers back toward you, lean back over wrists'},
+    {id:'wm5',name:'Rear pulses palm up',detail:'5 reps — hold last 20 sec',cue:'Palm up, fingers back towards you, lean forward over wrists'},
   ],
   wrist_extra:[
     {id:'wf1',name:'Fist wrist circles',detail:'10 reps each direction',cue:'Full slow circles, controlled'},
@@ -554,91 +557,121 @@ const DAILY = {
     {id:'wf7',name:'Plank circles',detail:'5 circles each direction',cue:'In plank, shift weight in slow circles over wrists'},
   ],
   shoulders:[
-    {id:'sh1',name:'Arm circles',detail:'20 forward + 20 backward',cue:'Full range, controlled tempo'},
+    {id:'sh1',name:'Arm circles',detail:'20 forward + 20 backward'},
     {id:'sh2',name:'Shoulder dislocates',detail:'30 reps with towel',cue:'Arms straight throughout — if bending, widen grip'},
-    {id:'sh3',name:'Wall shoulder slides',detail:'30 reps',cue:'Back against wall, slide arms up keeping contact'},
-    {id:'sh4',name:'Doorway stretch — overhead',detail:'60 seconds',cue:'Arms overhead in doorframe, lean through gently'},
-    {id:'sh5',name:'Doorway stretch — side',detail:'60 seconds',cue:'Arm at shoulder height, rotate chest away'},
+    {id:'sh3',name:'Wall shoulder slides',detail:'30 reps',cue:'Back against the wall, feet 6 inches out, slide arms up straight then down to 90°, keeping contact'},
+    {id:'sh4',name:'Doorway stretch — overhead',detail:'60 seconds'},
+    {id:'sh5',name:'Doorway stretch — side',detail:'60 seconds'},
     {id:'sh6',name:'Supine shoulder stretch',detail:'60 sec each side',cue:'On back, one arm stretched overhead flat on floor'},
   ],
   pt_min:[
-    {id:'ptm1',name:'Leg squeezes',detail:'3 × 15 reps',cue:'Squeeze quad and glute, hold 2 sec at top'},
-    {id:'ptm2',name:'Straight leg raises',detail:'3 × 10 each leg',cue:'Flatten lower back, raise to ~45°, slow and controlled'},
-    {id:'ptm3',name:'Squats',detail:'2 × 10 reps',cue:'Feet hip-width, track knee over 2nd toe, stop at parallel'},
+    {id:'ptm1',name:'Leg squeezes',detail:'3 × 15 reps',cue:'Squeeze quad and glute, hold for 2 sec',r:true},
+    {id:'ptm2',name:'Straight leg raises',detail:'3 × 10 each leg',cue:'Leg squeeze + raise leg slow and controlled',r:true},
+    {id:'ptm3',name:'Squats',detail:'2 × 10 reps',r:true},
   ],
   pt_extra:[
-    {id:'ptf1',name:'Single leg RDL',detail:'2 × 8 each leg',cue:'Soft knee, hinge at hip, keep back flat'},
-    {id:'ptf2',name:'Step ups',detail:'2 × 10 each leg',cue:'Lead with heel, fully extend hip at top'},
-    {id:'ptf3',name:'Step downs',detail:'2 × 10 each leg',cue:'Single leg control, lower slowly'},
+    {id:'ptf1',name:'Single leg RDL',detail:'2 × 8 each leg',cue:'Soft knee, hinge at hip, keep back flat',r:true},
+    {id:'ptf2',name:'Step ups',detail:'2 × 10 each leg',cue:'Lead with heel, fully extend hip at top',r:true},
+    {id:'ptf3',name:'Step downs',detail:'2 × 10 each leg',cue:'Single leg control, lower slowly',r:true},
   ],
 };
 
 const EX = {
   push_gym:[
-    {id:'pg1',name:'Chest press',detail:'3 × 8–12 reps',cue:'Elbows at 45°, lower to chest',w:true},
-    {id:'pg2',name:'Shoulder press',detail:'3 × 8–12 reps',cue:'Neutral spine, don\'t flare elbows forward',w:true},
-    {id:'pg3',name:'Lateral raises',detail:'3 × 12–15 reps',cue:'Lead with elbows, slight forward lean',w:true},
-    {id:'pg4',name:'Front raises',detail:'2 × 12 reps',cue:'Palms down, raise to shoulder height only',w:true},
-    {id:'pg5',name:'Y-T-W raises',detail:'2 × 10 each',cue:'Light weight, squeeze shoulder blades',w:true},
-    {id:'pg6',name:'Overhead tricep extension',detail:'3 × 12 reps',cue:'Keep elbows pointing up, full range',w:true},
-    {id:'pg7',name:'Skull crushers',detail:'3 × 10–12 reps',cue:'Lower to temples, extend fully',w:true},
-    {id:'pg8',name:'Bottoms-up press',detail:'2 × 8 each arm',cue:'KB upside down — demands shoulder stability',w:true},
-    {id:'pg9',name:'Chest fly',detail:'3 × 12 reps',cue:'Slight bend in elbows, stretch at bottom',w:true},
-    {id:'pg10',name:'Incline press',detail:'3 × 10 reps',cue:'45° incline, upper chest and anterior delt',w:true},
-    {id:'pg11',name:'Cable tricep pushdown',detail:'3 × 15 reps',cue:'Elbows tucked, full extension'},
-    {id:'pg12',name:'Cable overhead tricep extension',detail:'2 × 12 reps',cue:'Face away from cable, hinge forward slightly'},
-    {id:'pg13',name:'Cable chest fly',detail:'3 × 12 reps',cue:'High pulley, cross hands at center'},
+    {id:'pg1',name:'Chest press',detail:'3 × 8–12 reps',cue:'On back, wrists over shoulders, elbows come down at 45° by ribcage',w:true},
+    {id:'pg2',name:'Shoulder press',detail:'3 × 8–12 reps',cue:'Seated, elbows out to the side, dumbbells at ear level, push up above the head',w:true},
+    {id:'pg3',name:'Lateral raises',detail:'3 × 12–15 reps',cue:'Standing, weights by side, raise dumbbells to shoulder height with palms facing in, elbows slightly bent',w:true},
+    {id:'pg4',name:'Front raises',detail:'2 × 12 reps',cue:'Standing, dumbbells in front, shoulders down, raise with neutral grip to shoulder height',w:true},
+    {id:'pg5',name:'Y-T-W raises',detail:'2 × 10 each',cue:'Torso at 45° either standing or using bench, arms down in front, lift to Y, lift to T, lift to W',w:true},
+    {id:'pg6',name:'Overhead tricep extension',detail:'3 × 12 reps',cue:'One dumbbell with both hands above head, lower behind until forearms touch biceps, keep elbows pointing up',w:true},
+    {id:'pg7',name:'Skull crushers',detail:'3 × 10–12 reps',cue:'On back, hold dumbbells at base (not middle), arms behind head, bend to lower dumbbells to head, don\'t flare elbows',w:true},
+    {id:'pg8',name:'Bottoms-up press',detail:'2 × 8 each arm',cue:'Seated or standing, kettlebell upside down, elbow in line with shoulder, press up',w:true},
+    {id:'pg9',name:'Chest fly',detail:'3 × 12 reps',cue:'On back, arms out at shoulder level, palms up, bring arms up then back down',w:true},
+    {id:'pg10',name:'Incline press',detail:'3 × 10 reps',cue:'On back, 45° incline, lift from upper chest upward',w:true},
+    {id:'pg11',name:'Cable tricep pushdown',detail:'3 × 15 reps',cue:'Cable just above head height, bar around chest height, keep elbows in and push down until arms are extended, don\'t lean forward too much',w:true},
+    {id:'pg12',name:'Cable overhead tricep extension',detail:'2 × 12 reps',cue:'Cable low, face away, slight forward lean, hold rope behind head with upper arms by ear, straighten elbows until extended',w:true},
+    {id:'pg13',name:'Cable chest fly',detail:'3 × 12 reps',cue:'High pulley, feet wider than shoulder-width, perpendicular to machine, arm out at shoulder level, swing arm down across body',w:true},
   ],
   push_home:[
-    {id:'ph1',name:'Push-ups',detail:'3 × max reps',cue:'Full range, chest touches floor, elbows at 45°'},
-    {id:'ph2',name:'Pike push-ups',detail:'3 × 8–12 reps',cue:'Hips high, lower crown toward floor',highlight:true},
-    {id:'ph3',name:'Diamond push-ups',detail:'3 × 8–12 reps',cue:'Hands form diamond, elbows stay close'},
-    {id:'ph4',name:'Pseudo planche push-ups',detail:'3 × 5–8 reps',cue:'Lean forward over hands, protract shoulder blades'},
-    {id:'ph5',name:'Chair dips',detail:'3 × 10–15 reps',cue:'Hands on chair, lower until elbows at 90°'},
+    {id:'ph1',name:'Push-ups',detail:'3 × max reps',cue:'Full range, chest touches floor, elbows at 45°',r:true},
+    {id:'ph2',name:'Pike push-ups',detail:'3 × 8–12 reps',cue:'Hips high, lower crown toward floor',highlight:true,r:true},
+    {id:'ph3',name:'Diamond push-ups',detail:'3 × 8–12 reps',cue:'Hands form diamond, elbows stay close',r:true},
+    {id:'ph4',name:'Pseudo planche push-ups',detail:'3 × 5–8 reps',cue:'Lean forward over hands, protract shoulder blades',r:true},
+    {id:'ph5',name:'Chair dips',detail:'3 × 10–15 reps',cue:'Hands on chair, lower until elbows at 90°',r:true},
     {id:'ph6',name:'Pike push-up holds',detail:'3 × 10 sec hold',cue:'Hold top of pike push-up — builds overhead strength'},
   ],
   pull_gym:[
-    {id:'plg1',name:'Pull-ups',detail:'3 × max reps',cue:'Full hang to chin over bar, avoid kipping'},
-    {id:'plg2',name:'Chin-ups',detail:'3 × max reps',cue:'Supinated grip, elbows fully extend at bottom'},
+    {id:'plg1',name:'Pull-ups',detail:'3 × max reps',cue:'Full hang to chin over bar, avoid kipping',r:true},
+    {id:'plg2',name:'Chin-ups',detail:'3 × max reps',cue:'Supinated grip, elbows fully extend at bottom',r:true},
     {id:'plg3',name:'Dead hang',detail:'3 × 20–30 sec',cue:'Fully passive hang, decompress the spine'},
     {id:'plg4',name:'Active hang',detail:'3 × 15–20 sec',cue:'Depress and retract scapula, shoulders away from ears'},
-    {id:'plg5',name:'Single arm row',detail:'3 × 10–12 each side',cue:'Elbow drives back, rotate torso slightly at top',w:true},
-    {id:'plg6',name:'Dumbbell curl',detail:'3 × 12 reps',cue:'Supinate at top, full extension at bottom',w:true},
-    {id:'plg7',name:'Hammer curl',detail:'3 × 12 reps',cue:'Neutral grip, targets brachialis',w:true},
+    {id:'plg5',name:'Single arm row',detail:'3 × 10–12 each side',cue:'One hand on box or bench, flat back slight knee bend, drive arm up with elbow high',w:true},
+    {id:'plg6',name:'Dumbbell curl',detail:'3 × 12 reps',cue:'Dumbbells at side, palms up, curl dumbbells up as far as possible',w:true},
+    {id:'plg7',name:'Hammer curl',detail:'3 × 12 reps',cue:'Dumbbells at side, palms inward, curl dumbbells up',w:true},
     {id:'plg8',name:'Rear delt fly',detail:'3 × 15 reps',cue:'Hinge forward 45°, lead with elbows wide',w:true},
-    {id:'plg9',name:'Dumbbell pullover',detail:'3 × 12 reps',cue:'Straight arms, feel lats stretch at full extension',w:true},
-    {id:'plg10',name:'Reverse curl',detail:'2 × 12 reps',cue:'Pronated grip, targets brachioradialis',w:true},
-    {id:'plg11',name:'Cable lat pulldown',detail:'3 × 12 reps',cue:'Wide grip, pull to upper chest, elbows down and back'},
-    {id:'plg12',name:'Cable row',detail:'3 × 12 reps',cue:'Neutral spine, squeeze shoulder blades at top'},
-    {id:'plg13',name:'Face pulls',detail:'3 × 15 reps',cue:'External rotation at end range — great for shoulder health'},
-    {id:'plg14',name:'Straight arm pulldown',detail:'3 × 12 reps',cue:'Straight arms, pull to hips, feel lats working'},
+    {id:'plg9',name:'Dumbbell pullover',detail:'3 × 12 reps',cue:'On back, one dumbbell both hands, arms straight above chest, lower in arc behind head',w:true},
+    {id:'plg10',name:'Reverse curl',detail:'2 × 12 reps',cue:'Dumbbells at side, palms back, curl dumbbells up as far as possible',w:true},
+    {id:'plg11',name:'Cable lat pulldown',detail:'3 × 12 reps',cue:'Wide grip, pull to upper chest, elbows down and back',w:true},
+    {id:'plg12',name:'Cable row',detail:'3 × 12 reps',cue:'Row machine',w:true},
+    {id:'plg13',name:'Face pulls',detail:'3 × 15 reps',cue:'Cable slightly above face height, pull towards face',w:true},
+    {id:'plg14',name:'Straight arm pulldown',detail:'3 × 12 reps',cue:'Cable above head height, standing, lean forward, pull arms straight down',w:true},
   ],
   pull_home:[
-    {id:'plh1',name:'Band pull-aparts',detail:'3 × 20 reps',cue:'Arms straight, pull band to chest, squeeze shoulder blades'},
-    {id:'plh2',name:'Band face pulls',detail:'3 × 15 reps',cue:'Anchor at head height, pull to face with external rotation'},
-    {id:'plh3',name:'Band rows',detail:'3 × 12 reps',cue:'Anchor low, hinge forward, row elbows back'},
-    {id:'plh4',name:'Band lat pulldown',detail:'3 × 12 reps',cue:'Anchor overhead, pull elbows down and back'},
-    {id:'plh5',name:'Band bicep curl',detail:'3 × 15 reps',cue:'Step on band, supinate at top'},
-    {id:'plh6',name:'Table inverted rows',detail:'3 × max reps',cue:'Under a sturdy table, pull chest to surface'},
+    {id:'plh1',name:'Band pull-aparts',detail:'3 × 20 reps',cue:'Arms straight, pull band to chest, squeeze shoulder blades',r:true},
+    {id:'plh2',name:'Band face pulls',detail:'3 × 15 reps',cue:'Anchor at head height, pull to face with external rotation',r:true},
+    {id:'plh3',name:'Band rows',detail:'3 × 12 reps',cue:'Anchor low, hinge forward, row elbows back',r:true},
+    {id:'plh4',name:'Band lat pulldown',detail:'3 × 12 reps',cue:'Anchor overhead, pull elbows down and back',r:true},
+    {id:'plh5',name:'Band bicep curl',detail:'3 × 15 reps',cue:'Step on band, supinate at top',r:true},
+    {id:'plh6',name:'Table inverted rows',detail:'3 × max reps',cue:'Under a sturdy table, pull chest to surface',r:true},
   ],
   handstand:[
     {id:'hs1',name:'Full wrist warm-up',detail:'Before anything else',cue:'Do your full wrist routine first — always'},
-    {id:'hs2',name:'Shoulder wall slides',detail:'2 × 15 reps',cue:'Back to wall, slide arms up keeping full contact'},
-    {id:'hs3',name:'Scapular push-ups',detail:'3 × 10 reps',cue:'In plank, protract and retract without bending elbows'},
+    {id:'hs2',name:'Shoulder wall slides',detail:'2 × 15 reps',cue:'Back to wall, slide arms up keeping full contact',r:true},
+    {id:'hs3',name:'Scapular push-ups',detail:'3 × 10 reps',cue:'In plank, protract and retract without bending elbows',r:true},
     {id:'hs4',name:'Hollow body hold',detail:'3 × 20–30 sec',cue:'This IS your handstand shape — drill it here first'},
     {id:'hs5',name:'Pike hold (feet elevated)',detail:'3 × 20 sec',cue:'Feet on couch/chair, hips over shoulders, press into floor'},
     {id:'hs6',name:'Wall handstand — chest to wall',detail:'5 × max hold',cue:'Kick up facing away, belly toward wall, work on straightening'},
-    {id:'hs7',name:'Shoulder taps in plank',detail:'3 × 10 each side',cue:'Keep hips square — this is your handstand balance training'},
+    {id:'hs7',name:'Shoulder taps in plank',detail:'3 × 10 each side',cue:'Keep hips square — this is your handstand balance training',r:true},
     {id:'hs8',name:'Frog stand / crow hold',detail:'5 × 10 sec',cue:'Weight forward on hands, balance on bent knees — wrist loading practice'},
-    {id:'hs9',name:'Pike walk-outs',detail:'3 × 5 reps',cue:'From standing fold, walk hands out to plank and back'},
+    {id:'hs9',name:'Pike walk-outs',detail:'3 × 5 reps',cue:'From standing fold, walk hands out to plank and back',r:true},
     {id:'hs10',name:'Wrist cool-down',detail:'Minimum wrist routine',cue:'Always cool down your wrists after weight-bearing'},
   ],
+  tue_core:{
+    hollow:[
+      {id:'tch1',name:'Hollow body hold',detail:'3 × 20–30 sec',cue:'Press lower back into floor, arms overhead — your handstand shape'},
+      {id:'tch2',name:'Hollow body hold with weights',detail:'3 × 20 sec',cue:'Light dumbbells overhead, same hollow position — arms make it harder',r:true,w:true},
+      {id:'tch3',name:'Hollow body rocks',detail:'3 × 10–15 rocks',cue:'Rock forward and back without losing the hollow shape',r:true},
+      {id:'tch4',name:'Hanging hollow hold',detail:'3 × 10–20 sec',cue:'From bar, pull ribs down, posterior tilt — straight body hang'},
+    ],
+    lateral:[
+      {id:'tcl1',name:'Side plank hold',detail:'3 × 20–30 sec each side',cue:'Hip stacked, don\'t let it sag — build base time first'},
+      {id:'tcl2',name:'Side plank with hip dips',detail:'3 × 10 each side',cue:'Lower hip to floor and lift back — controlled',r:true},
+      {id:'tcl3',name:'Side plank with rotation',detail:'3 × 8 each side',cue:'Thread top arm under body, rotate — opens thoracic too',r:true},
+      {id:'tcl4',name:'Star side plank',detail:'3 × 10–15 sec each side',cue:'Top arm and leg raised — full body balance challenge',highlight:true},
+      {id:'tcl5',name:'Copenhagen plank',detail:'3 × 10–20 sec each side',cue:'Top foot on bench, bottom leg floating — brutal adductor load',highlight:true},
+    ],
+    compression:[
+      {id:'tcc1',name:'Dead bug',detail:'3 × 8 each side',cue:'Lower back pressed down, extend opposite arm/leg',r:true},
+      {id:'tcc2',name:'Lying leg raises',detail:'3 × 10–15 reps',cue:'Lower back flat, legs straight, lower slow — don\'t let back arch',r:true},
+      {id:'tcc3',name:'Tuck compression hold',detail:'3 × 20–30 sec',cue:'Seated, knees pulled to chest actively — hip flexors working'},
+      {id:'tcc4',name:'L-sit',detail:'3 × 5–10 sec',cue:'Legs parallel to floor, arms straight, depress scapula — the goal',highlight:true},
+      {id:'tcc5',name:'Seated pike compression',detail:'3 × 30 sec',cue:'Legs straight out, fold forward, actively pull chest to legs'},
+      {id:'tcc6',name:'Straddle compression hold',detail:'3 × 30 sec',cue:'Legs wide, fold forward from hips, hands pressing floor'},
+    ],
+  },
   thu_core:[
-    {id:'tc1',name:'Dead bug',detail:'3 × 8 each side',cue:'Lower back pressed down, extend opposite arm/leg'},
-    {id:'tc2',name:'Bird dog',detail:'3 × 10 each side',cue:'Four-point, extend opposite arm/leg, don\'t let hips rotate'},
+    {id:'tc1',name:'Dead bug',detail:'3 × 8 each side',cue:'Lower back pressed down, extend opposite arm/leg',r:true},
+    {id:'tc2',name:'Bird dog',detail:'3 × 10 each side',cue:'Four-point, extend opposite arm/leg, don\'t let hips rotate',r:true},
     {id:'tc3',name:'Plank hold',detail:'3 × 30–45 sec',cue:'Hips level, breathe steadily, think hollow body shape'},
     {id:'tc4',name:'Side plank',detail:'2 × 20 sec each side',cue:'Hip stacked, don\'t let it sag'},
-    {id:'tc5',name:'Glute bridge',detail:'3 × 15 reps',cue:'Drive through heels, squeeze glutes at top — supports knee too'},
+    {id:'tc5',name:'Glute bridge',detail:'3 × 15 reps',cue:'Drive through heels, squeeze glutes at top — supports knee too',r:true},
+  ],
+  gym_core:[
+    {id:'gc1',name:'Hanging leg raises',detail:'3 × 10–15 reps',cue:'Dead hang start, posterior tilt, raise legs straight — no swing',r:true},
+    {id:'gc2',name:'Cable crunches',detail:'3 × 15 reps',cue:'Kneel at cable, crunch elbows to knees — feel abs not hip flexors',w:true},
+    {id:'gc3',name:'Dumbbell side bend',detail:'3 × 12 each side',cue:'Dumbbells at side, bend sideways at waist toward dumbbell, contract obliques to return',w:true},
+    {id:'gc4',name:'Cable woodchop',detail:'3 × 12 each side',cue:'High pulley, pull down across the body diagonally',w:true},
+    {id:'gc5',name:'Pallof press',detail:'3 × 10 each side',cue:'Pulley at chest height, sideways to machine, grip with both hands at chest height, press forward until arms extend fully',w:true},
   ],
   flex_wed:{
     warmup:[
@@ -688,13 +721,13 @@ const EX = {
   flex_sun:{
     warmup:[
       {id:'sw1',name:'Light cardio',detail:'5 minutes'},
-      {id:'sw2',name:'Leg swings',detail:'15 each leg — front/back and side-to-side',cue:'Hold something for balance'},
-      {id:'sw3',name:'Walking lunges',detail:'10 each leg',cue:'Deep, hold 2 sec each'},
+      {id:'sw2',name:'Leg swings',detail:'15 each leg — front/back and side-to-side'},
+      {id:'sw3',name:'Walking lunges',detail:'10 each leg'},
       {id:'sw4',name:'Hip circles',detail:'15 each direction'},
       {id:'sw5',name:'Cat-cow',detail:'15 reps'},
       {id:'sw6',name:'Down dog to cobra flow',detail:'10 reps'},
       {id:'sw7',name:'Standing figure-4',detail:'30 sec each leg'},
-      {id:'sw8',name:'Standing forward fold',detail:'60 sec',cue:'Let gravity pull you down'},
+      {id:'sw8',name:'Standing forward fold',detail:'60 sec'},
     ],
     right_split:[
       {id:'sr1',name:'Low lunge — right leg forward',detail:'2 min hold',cue:'Sink hips, SQUARE hips forward — right side always first!'},
@@ -710,7 +743,7 @@ const EX = {
       {id:'sl4',name:'Left leg standing hold',detail:'30 sec'},
     ],
     middle_split:[
-      {id:'sm1',name:'Butterfly stretch',detail:'2 min',cue:'Knees 1 fist from floor — keep working'},
+      {id:'sm1',name:'Butterfly stretch',detail:'2 min'},
       {id:'sm2',name:'Frog pose',detail:'3 min',cue:'On forearms, knees wide, breathe and sink lower'},
       {id:'sm3',name:'Middle split seated',detail:'3 min',cue:'Flat back as long as possible, then lean forward'},
       {id:'sm4',name:'Middle split passive fold',detail:'2 min',cue:'Walk hands forward, chest drops toward floor'},
@@ -724,20 +757,20 @@ const EX = {
       {id:'sd6',name:'Bow pose',detail:'3 × 30 sec',cue:'Walk hands down legs toward ankles'},
     ],
     hips:[
-      {id:'sh1',name:'Pigeon — right side',detail:'2 min',cue:'Shin parallel, fold forward, hips level'},
-      {id:'sh2',name:'Pigeon — left side',detail:'2 min'},
-      {id:'sh3',name:'Reclining pigeon both sides',detail:'90 sec each'},
-      {id:'sh4',name:'Happy baby pose',detail:'90 sec',cue:'Grab feet, knees wide, rock gently'},
+      {id:'xh1',name:'Pigeon — right side',detail:'2 min',cue:'Shin parallel, fold forward, hips level'},
+      {id:'xh2',name:'Pigeon — left side',detail:'2 min'},
+      {id:'xh3',name:'Reclining pigeon both sides',detail:'90 sec each',cue:'On your back, ankle over opposite knee, pull thigh toward chest'},
+      {id:'xh4',name:'Happy baby pose',detail:'90 sec',cue:'Grab feet, knees wide, rock gently'},
     ],
     backbend_light:[
-      {id:'sb1',name:'Bridge hold',detail:'2 × 30 sec',cue:'Maintain your backbend — don\'t let it slip'},
-      {id:'sb2',name:'Camel pose',detail:'2 × 20 sec'},
-      {id:'sb3',name:'Cobra pose',detail:'2 × 30 sec'},
+      {id:'xbl1',name:'Bridge hold',detail:'2 × 30 sec',cue:'Maintain your backbend — don\'t let it slip'},
+      {id:'xbl2',name:'Camel pose',detail:'2 × 20 sec'},
+      {id:'xbl3',name:'Cobra pose',detail:'2 × 30 sec'},
     ],
     cooldown:[
-      {id:'sc1',name:'Seated forward fold',detail:'2 minutes'},
-      {id:'sc2',name:'Supine figure-4',detail:'60 sec each side'},
-      {id:'sc3',name:'Supine twist',detail:'45 sec each side'},
+      {id:'xc1',name:'Seated forward fold',detail:'2 minutes'},
+      {id:'xc2',name:'Supine figure-4',detail:'60 sec each side'},
+      {id:'xc3',name:'Supine twist',detail:'45 sec each side'},
     ],
   },
 };
@@ -773,8 +806,10 @@ let state = JSON.parse(localStorage.getItem('train_sakura') || 'null') || {
   progress:{bridge:[],splits:[],handstand:[],hollow:[]},
   milestones:{handstand:{},bridge:{}},
   gymPRs:{},
+  actual:{},
   wristMode:'min', ptMode:'min',
 };
+if(!state.actual)state.actual={};
 function save(){localStorage.setItem('train_sakura',JSON.stringify(state));}
 
 // ═══════════════════════════════════════════════
@@ -868,13 +903,11 @@ function renderDashboard(){
   document.getElementById('dash-greeting').textContent=greetingWord();
   document.getElementById('dash-date').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 
-  const quote=QUOTES[Math.floor(Math.random()*QUOTES.length)];
   const isDone=!!state.workouts[todayKey()];
   document.getElementById('today-banner-el').innerHTML=`
     <div class="today-banner" style="margin-bottom:16px;">
       <div class="banner-day">${sc.name}</div>
       <div class="banner-type">${sc.type}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic;">"${quote}"</div>
       <button class="banner-btn" onclick="showPage('today')">${isDone?'✓ Done — view again':'Open today\'s workout →'}</button>
     </div>`;
 
@@ -934,7 +967,9 @@ function updateStreakEls(ws,ds){
 // TODAY
 // ═══════════════════════════════════════════════
 function renderToday(){
-  const now=new Date();const dow=now.getDay();const sc=SCHEDULE[dow];const k=todayKey();
+  const now=new Date();
+  const dow=now.getDay();
+  const sc=SCHEDULE[dow];const k=todayKey();
   document.getElementById('today-title').innerHTML=`<em style="color:var(--pink);font-style:italic;">${sc.name}</em> <span style="color:var(--text);font-style:normal;">✦</span>`;
   document.getElementById('today-sub').textContent=sc.type;
 
@@ -987,7 +1022,7 @@ function renderToday(){
 
   // ── Workout content ──
   if(dow===1||dow===6) html+=renderPushPull(k,false);
-  else if(dow===2) html+=renderExSection(EX.handstand,'tue',false,null,'var(--lavender)','Handstand Day');
+  else if(dow===2) html+=renderTuesday('tue',false);
   else if(dow===3) html+=renderFlexWed(false);
   else if(dow===4) html+=renderExSection(EX.thu_core,'thu',false,null,'var(--rose)','Additional Core');
   else if(dow===5) html+=`<div class="card" style="text-align:center;padding:32px;"><div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--pink);">Aerial Hoop Open Gym</div><div style="font-size:13px;color:var(--text2);margin-top:6px;">Have fun — no structure needed today ✦</div></div>`;
@@ -1017,7 +1052,32 @@ function renderDailyBlock(k){
 function toggleWorkoutDone(){
   const k=todayKey();
   if(state.workouts[k])delete state.workouts[k];
-  else{state.workouts[k]={ts:new Date().toISOString(),notes:''};celebrate(document.getElementById('workout-log-btn'));autoBackup();}
+  else{
+    // Snapshot which exercises were checked and their actual sets/reps
+    const checked=[];
+    document.querySelectorAll('#page-today .ex-check.checked:not(.readonly)').forEach(el=>{
+      const fn=el.getAttribute('onclick')||'';
+      const m=fn.match(/'([^']+)'/);
+      if(m){
+        const ck=m[1];
+        const name=el.parentElement?.querySelector('.ex-name')?.textContent?.trim();
+        const actKey=`act_${ck}`;
+        const actual=(state.actual||{})[actKey]||{};
+        const planned=el.parentElement?.querySelector('.ex-detail')?.textContent?.trim()||'';
+        if(name)checked.push({
+          name,
+          sets:actual.sets||'',
+          reps:actual.reps||'',
+          secs:actual.secs||'',
+          weight:actual.weight||'',
+          planned,
+        });
+      }
+    });
+    state.workouts[k]={ts:new Date().toISOString(),notes:'',exercises:checked};
+    celebrate(document.getElementById('workout-log-btn'));
+    autoBackup();
+  }
   save();renderToday();
   updateStreakEls(calcWStreak(),calcDStreak());
 }
@@ -1039,6 +1099,13 @@ function saveNotes(k,v){
   state.workouts[k].notes=v;save();
 }
 
+function saveActual(actKey,field,val){
+  if(!state.actual)state.actual={};
+  if(!state.actual[actKey])state.actual[actKey]={};
+  state.actual[actKey][field]=val;
+  save();
+}
+
 // ═══════════════════════════════════════════════
 // EXERCISE RENDERERS
 // ═══════════════════════════════════════════════
@@ -1046,19 +1113,34 @@ function renderExItem(e,dayKey,readonly){
   const ck=`${dayKey}_${e.id}`;
   const isChecked=state.checks[ck]||false;
   const prVal=e.w?getPR(e.id):null;
-  const savedW=state.gymPRs[e.id]?.slice(-1)[0]?.weight||'';
+  const actKey=`act_${dayKey}_${e.id}`;
+  const actual=(state.actual||{});
+  const savedSets=actual[actKey]?.sets||'';
+  const savedReps=actual[actKey]?.reps||'';
+  const savedSecs=actual[actKey]?.secs||'';
+  const savedW=actual[actKey]?.weight||(e.w?(state.gymPRs[e.id]?.slice(-1)[0]?.weight||''):'');  const needsInput=e.w||e.r||e.t;
   return`<li class="ex-item">
     <div class="ex-check ${readonly?'readonly':''} ${isChecked?'checked':''}" ${!readonly?`onclick="toggleCheck('${ck}')"`:''}></div>
     <div class="ex-info">
       <div class="ex-name ${e.highlight?'highlight':''}">${e.name}</div>
-      <div class="ex-detail">${e.detail}</div>
+      <div class="ex-detail" id="detail-${ck}">${e.detail}</div>
       ${e.cue?`<div class="ex-cue">${e.cue}</div>`:''}
-      ${e.w&&!readonly?`<div class="ex-weight">
-        <input type="number" placeholder="lbs/kg" value="${savedW}" min="0" step="2.5"
-          onchange="logWeight('${e.id}',this.value)"
-          style="width:80px;" />
-        <span class="ex-weight-label">weight</span>
-        ${prVal?`<span class="ex-pr">PR ${prVal}</span>`:''}
+      ${needsInput&&!readonly?`<div class="ex-actual" id="actual-${ck}" style="display:${isChecked?'flex':'none'};align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <input type="number" placeholder="sets" min="1" value="${savedSets}" style="width:58px;"
+          onchange="saveActual('${actKey}','sets',this.value)" />
+        <span style="font-size:11px;color:var(--text3);">×</span>
+        ${e.t
+          ? `<input type="number" placeholder="sec" min="1" value="${savedSecs}" style="width:62px;"
+              onchange="saveActual('${actKey}','secs',this.value)" />
+             <span style="font-size:11px;color:var(--text3);">sec</span>`
+          : `<input type="number" placeholder="reps" min="1" value="${savedReps}" style="width:58px;"
+              onchange="saveActual('${actKey}','reps',this.value)" />
+             <span style="font-size:11px;color:var(--text3);">reps</span>`
+        }
+        ${e.w?`<input type="number" placeholder="lbs/kg" value="${savedW}" min="0" step="2.5" style="width:72px;"
+          onchange="saveActual('${actKey}','weight',this.value);logWeight('${e.id}',this.value)" />
+          ${prVal?`<span class="ex-pr">PR ${prVal}</span>`:''}
+        `:''}
       </div>`:''}
     </div>
   </li>`;
@@ -1070,6 +1152,9 @@ function toggleCheck(ck){
   state.checks[ck]=!state.checks[ck];save();
   const el=document.querySelector(`[onclick="toggleCheck('${ck}')"]`);
   if(el)el.classList.toggle('checked',state.checks[ck]);
+  // Show/hide actual sets/reps fields
+  const actualEl=document.getElementById(`actual-${ck}`);
+  if(actualEl)actualEl.style.display=state.checks[ck]?'flex':'none';
   updateDailyProgress();
 }
 
@@ -1101,6 +1186,16 @@ function renderExSection(exArr,key,readonly,color,accentColor,label){
   <div class="card" style="margin-bottom:12px;"><ul class="ex-list">${exArr.map(e=>readonly?renderExItemRO(e):renderExItem(e,key)).join('')}</ul></div>`;
 }
 
+function renderTuesday(k,readonly){
+  let html='';
+  html+=renderExSection(EX.handstand,k,readonly,null,'var(--lavender)','Handstand Day');
+  html+=`<div style="border-top:1px solid var(--border);margin:20px 0;position:relative;"><span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 10px;font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;">Core work</span></div>`;
+  html+=renderExSection(EX.tue_core.hollow,k,readonly,null,'var(--peach)','Hollow body');
+  html+=renderExSection(EX.tue_core.lateral,k,readonly,null,'var(--pink)','Lateral core — meathook prep');
+  html+=renderExSection(EX.tue_core.compression,k,readonly,null,'var(--mint)','Compression');
+  return html;
+}
+
 function renderPushPull(k,readonly){
   const loc=readonly?'gym':(state.location[k]||'gym');
   let html='';
@@ -1109,6 +1204,9 @@ function renderPushPull(k,readonly){
   }
   html+=renderExSection(EX[`push_${loc}`],k,readonly,'','var(--peach)','Push — chest, shoulders, triceps');
   html+=renderExSection(EX[`pull_${loc}`],k,readonly,'','var(--sky)','Pull — lats, biceps, back');
+  if(loc==='gym'){
+    html+=renderExSection(EX.gym_core,k,readonly,'','var(--mint)','Core');
+  }
   return html;
 }
 
@@ -1242,7 +1340,7 @@ function toggleExpand(dow){expandedDay=expandedDay===dow?null:dow;renderWeekly()
 
 function renderDayPreview(dow){
   if(dow===1||dow===6)return renderPushPull('preview_'+dow,true);
-  if(dow===2)return renderExSection(EX.handstand,'ro',true,null,'var(--lavender)','Handstand Day');
+  if(dow===2)return renderTuesday('ro',true);
   if(dow===3)return renderFlexWed(true);
   if(dow===4)return`<div style="margin-bottom:10px;font-size:12px;color:var(--rose);">PT appointment day — your therapist guides the knee work.</div>`+renderExSection(EX.thu_core,'ro',true,null,'var(--rose)','Additional Core');
   if(dow===5)return`<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px;">Aerial hoop open gym ✦ No structure, just fly.</div>`;
@@ -1431,7 +1529,7 @@ function renderLog(){
   let entries=[];
   Object.entries(state.workouts).forEach(([k,v])=>{
     const d=new Date(k+'T12:00:00');const sc=SCHEDULE[d.getDay()];
-    entries.push({date:k,type:'workout',label:sc.type,color:sc.color,meta:v.location||'',notes:v.notes||'',dow:d.getDay()});
+    entries.push({date:k,type:'workout',label:sc.type,color:sc.color,meta:v.location||'',notes:v.notes||'',exercises:v.exercises||[],dow:d.getDay()});
   });
   Object.entries(state.daily).forEach(([k])=>{
     if(!state.workouts[k])entries.push({date:k,type:'daily',label:'Daily routine',color:'var(--lavender)',meta:'',notes:''});
@@ -1450,21 +1548,55 @@ function renderLog(){
   }
 
   if(!entries.length){document.getElementById('log-content').innerHTML='<div class="empty"><div class="empty-icon">✦</div>Nothing logged yet — your history will appear here</div>';return;}
-  document.getElementById('log-content').innerHTML=entries.map(e=>`
-    <div class="log-item">
-      <div class="log-dot" style="background:${e.color}"></div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <div class="log-date">${fmtDate(e.date)}</div>
-          <div class="log-name">${e.label}</div>
-          ${e.meta?`<div class="log-meta">${e.meta}</div>`:''}
+  document.getElementById('log-content').innerHTML=entries.map((e,i)=>{
+    const hasDetail=e.notes||(e.exercises&&e.exercises.length);
+    return`<div class="log-entry ${hasDetail?'expandable':''}" onclick="${hasDetail?`toggleLogEntry(${i})`:''}" id="log-entry-${i}">
+      <div class="log-item">
+        <div class="log-dot" style="background:${e.color}"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div class="log-date">${fmtDate(e.date)}</div>
+            <div class="log-name">${e.label}</div>
+            ${e.meta?`<div class="log-meta">${e.meta}</div>`:''}
+          </div>
+          ${e.exercises&&e.exercises.length?`<div style="font-size:11px;color:var(--text3);margin-top:2px;">${e.exercises.length} exercises logged</div>`:''}
         </div>
-        ${e.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px;font-style:italic;">${e.notes}</div>`:''}
+        ${hasDetail?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="log-chevron" id="log-chev-${i}"><polyline points="9 18 15 12 9 6"/></svg>`:''}
       </div>
-    </div>`).join('');
+      <div class="log-detail" id="log-detail-${i}" style="display:none;">
+        ${e.exercises&&e.exercises.length?`
+          <div style="margin-bottom:8px;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;">Exercises done</div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              ${e.exercises.map(ex=>{
+                const name=typeof ex==='string'?ex:ex.name;
+                const hasActual=ex.sets||(ex.reps||ex.secs);
+                const valueStr=ex.secs?`${ex.sets||'?'} × ${ex.secs}sec`:ex.reps?`${ex.sets||'?'} × ${ex.reps}`:null;
+                const weightStr=ex.weight?` @ ${ex.weight}lbs`:'';
+                const label=valueStr?(valueStr+weightStr):ex.planned||'';
+                return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--border);">
+                  <span style="font-size:12px;color:var(--text2);">${name}</span>
+                  ${label?`<span style="font-size:11px;color:${hasActual?'var(--peach)':'var(--text3)'};white-space:nowrap;">${label}</span>`:''}
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`:''}
+        ${e.notes?`<div style="font-size:12px;color:var(--text3);font-style:italic;border-top:1px solid var(--border);padding-top:8px;">"${e.notes}"</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function setLogFilter(f){logFilter=f;renderLog();}
+
+function toggleLogEntry(i){
+  const detail=document.getElementById(`log-detail-${i}`);
+  const chev=document.getElementById(`log-chev-${i}`);
+  const isOpen=detail.style.display!=='none';
+  detail.style.display=isOpen?'none':'block';
+  if(chev)chev.style.transform=isOpen?'':'rotate(90deg)';
+}
+
 
 // ═══════════════════════════════════════════════
 // EXPORT / IMPORT / MODAL
@@ -1536,10 +1668,13 @@ function importData(e){
         progress:{bridge:[],splits:[],handstand:[],hollow:[]},
         milestones:{handstand:{},bridge:{}},
         gymPRs:{},
+        actual:{},
+        cues:{},
         wristMode:'min',ptMode:'min',
         ...imported,
         progress:{bridge:[],splits:[],handstand:[],hollow:[],...(imported.progress||{})},
         milestones:{handstand:{},bridge:{},...(imported.milestones||{})},
+        cues:{...(imported.cues||{})},
       };
       save();
       msg.style.display='block';
